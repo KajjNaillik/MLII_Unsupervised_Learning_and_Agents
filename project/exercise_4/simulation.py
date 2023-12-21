@@ -5,6 +5,7 @@ import numpy as np
 
 from agent import Agent
 from default_policy import default_policy
+from closeai_policy import closeai_policy
 
 WORLD_SIZE = 8
 WORLD_UPDATE_PERIOD = 10
@@ -20,6 +21,7 @@ def reset_rewards(world_size: int) -> np.ndarray:
         reward = np.random.randint(MAX_REWARD)
         position = np.random.randint(world_size)
         rewards[position] = reward
+    # print("rewards = ", rewards)
     return rewards
 
 
@@ -48,7 +50,8 @@ def run_simulation() -> list:
             # print(f"rewards: {rewards}\n")
 
         # choose action and move agent
-        action = default_policy(agent)
+        # action = default_policy(agent)
+        action = closeai_policy(agent)
         agent.move(action, WORLD_SIZE)
         # print(f"move {action}")
         # print(f"position: {agent.position}")
@@ -63,6 +66,7 @@ def run_simulation() -> list:
         accumulated_reward += reward
         averaged_reward = accumulated_reward / (step + 1)
         averaged_rewards.append(averaged_reward)
+        
     return averaged_rewards
 
 
