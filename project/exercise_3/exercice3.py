@@ -1,25 +1,14 @@
 import numpy as np
 from sklearn.cluster import KMeans, AgglomerativeClustering
-from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import silhouette_score, calinski_harabasz_score
 import matplotlib.pyplot as plt
 
-# Load the data
-data = np.load('./data.npy')
+data = np.load('data.npy')
 
-# Standardize the data
-scaler = StandardScaler()
-scaled_data = scaler.fit_transform(data)
-
-# Define clustering methods
-kmeans = KMeans(n_clusters=3, random_state=42)
-hierarchical = AgglomerativeClustering(n_clusters=3)
-
-# Define heuristics
 def elbow_method(data, max_clusters=10):
     distortions = []
     for i in range(1, max_clusters + 1):
-        kmeans = KMeans(n_clusters=i, random_state=42)
+        kmeans = KMeans(n_init=10, n_clusters=i, random_state=42)
         kmeans.fit(data)
         distortions.append(kmeans.inertia_)
     return distortions
@@ -27,38 +16,56 @@ def elbow_method(data, max_clusters=10):
 def silhouette_method(data, max_clusters=10):
     silhouette_scores = []
     for i in range(2, max_clusters + 1):
-        kmeans = KMeans(n_clusters=i, random_state=42)
+        kmeans = KMeans(n_init=10, n_clusters=i, random_state=42)
         labels = kmeans.fit_predict(data)
         silhouette_scores.append(silhouette_score(data, labels))
     return silhouette_scores
 
-# Apply clustering methods and heuristics
-methods = [(kmeans, 'K-Means', 'Euclidean'), (hierarchical, 'Hierarchical', 'Euclidean')]
+def elbow_method_hie(data, max_clusters=10):
+    distortions = []
+    for i in range(1, max_clusters + 1):
+        agglomerative = AgglomerativeClustering(n_clusters=i, metric='manhattan', linkage='complete')
+        labels = agglomerative.fit_predict(data)
+        variance = sum(np.sum(np.var(data[np.where(labels == j)], axis=0)) for j in np.unique(labels))
+        distortions.append(variance)
+    return distortions
 
-for method, method_name, metric_name in methods:
-    # Elbow method
-    distortions = elbow_method(data)
-    plt.plot(range(1, len(distortions) + 1), distortions, marker='o', label=f'{method_name} - Elbow')
+def silhouette_method_hie(data, max_clusters=10):
+    silhouette_scores = []
+    for i in range(2, max_clusters + 1):
+        hierarchical = AgglomerativeClustering(n_clusters=i, metric='manhattan', linkage='complete')
+        labels = hierarchical.fit_predict(data)
+        score = silhouette_score(data, labels)
+        silhouette_scores.append(score)
+    return silhouette_scores
 
-    # Silhouette method
-    silhouette_scores = silhouette_method(data)
-    plt.plot(range(2, len(silhouette_scores) + 2), silhouette_scores, marker='o', label=f'{method_name} - Silhouette')
+methods = ['K-Means', 'Hierarchical']
 
-    # Fit and predict
-    labels = method.fit_predict(data)
+fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(10, 8))
 
-    # Metric for evaluation
-    if metric_name == 'Euclidean':
-        metric = 'euclidean'
-    else:
-        # Define your custom metric here
-        pass
+distortions = elbow_method(data)
+axes[0, 0].plot(range(1, len(distortions) + 1), distortions, marker='o')
+axes[0, 0].set_title('K-Means - Elbow Method')
+axes[0, 0].set_xlabel('Number of Clusters')
+axes[0, 0].set_ylabel('Distortion')
 
-    # Print the evaluation metric
-    print(f'{method_name} - {metric_name} Metric:', calinski_harabasz_score(data, labels))
+silhouette_scores = silhouette_method(data)
+axes[0, 1].plot(range(2, len(silhouette_scores) + 2), silhouette_scores, marker='o')
+axes[0, 1].set_title('K-Means - Silhouette Method')
+axes[0, 1].set_xlabel('Number of Clusters')
+axes[0, 1].set_ylabel('Silhouette Score')
 
-# Plotting
-plt.xlabel('Number of Clusters')
-plt.ylabel('Score')
-plt.legend()
+distortions = elbow_method_hie(data)
+axes[1, 0].plot(range(1, len(distortions) + 1), distortions, marker='o')
+axes[1, 0].set_title('Hierarchical - Elbow Method')
+axes[1, 0].set_xlabel('Number of Clusters')
+axes[1, 0].set_ylabel('Distortion')
+
+silhouette_scores = silhouette_method_hie(data)
+axes[1, 1].plot(range(2, len(silhouette_scores) + 2), silhouette_scores, marker='o')
+axes[1, 1].set_title('Hierarchical - Silhouette Method')
+axes[1, 1].set_xlabel('Number of Clusters')
+axes[1, 1].set_ylabel('Silhouette Score')
+
+plt.tight_layout()
 plt.show()
